@@ -5,6 +5,7 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+// Catalogo de la flota
 $flota = [
     [
         'modelo' => 'Citroën ë-C4',
@@ -40,18 +41,21 @@ $flota = [
     ],
 ];
 
+// Recorrido con referencia
 foreach ($flota as &$vehiculo) {
+    // Formateo multibyte *
     $vehiculo['categoria_titulo'] = mb_convert_case($vehiculo['categoria'], MB_CASE_TITLE, 'UTF-8');
     $vehiculo['modelo_mayusculas'] = mb_strtoupper($vehiculo['modelo'], 'UTF-8');
     $vehiculo['longitud_modelo'] = mb_strlen($vehiculo['modelo'], 'UTF-8');
 
-    // Diferencia entre existencia de clave y valor no nulo.
+    // Diferencia entre existencia de clave y valor no nulo. *
     $vehiculo['tiene_clave_descuento'] = array_key_exists('descuento', $vehiculo);
     $vehiculo['descuento_no_nulo'] = isset($vehiculo['descuento']) && $vehiculo['descuento'] !== null;
 
     $vehiculo['tiene_clave_extras'] = array_key_exists('extras', $vehiculo);
     $vehiculo['extras_no_nulo'] = isset($vehiculo['extras']) && $vehiculo['extras'] !== null;
 }
+// Cierre de la referencia
 unset($vehiculo);
 
 // Orden descendente por autonomía y, en empate, por unidades disponibles.
@@ -60,6 +64,7 @@ usort($flota, static function (array $a, array $b): int {
         ?: ($b['unidades_disponibles'] <=> $a['unidades_disponibles']);
 });
 
+// Preparacion de datos para JavaScript
 $datosJS = array_map(static function (array $v): array {
     return [
         'modelo' => $v['modelo_mayusculas'],
@@ -72,11 +77,13 @@ $datosJS = array_map(static function (array $v): array {
     ];
 }, $flota);
 
+// Codificacion segura a JSON
 $flotaJS = json_encode(
     $datosJS,
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
 );
 
+// Captura en bufer
 ob_start();
 ?>
 <!DOCTYPE html>

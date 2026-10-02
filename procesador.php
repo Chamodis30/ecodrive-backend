@@ -1,29 +1,36 @@
+// Apertura y tipado estricto
 <?php
-declare(strict_types=1);
+declare(strict_types=1); //*
 
+// Diagnostico de errores
 ini_set('display_errors', '1');
 ini_set('display_startup-errors', '1');
 error_reporting(E_ALL);
 
+//Captura en bufer
 ob_start
 
+// Lectura de parametros GET
 $diasRaw = $_GET['dias'] ?? null;
 $unidadesRaw = $_GET['unidades'] ?? null;
 $cantidad = null;
 
+// Validacion del parametro
 if (array_key_exists('dias', $_GET)) {
     $cantidad = filter_var($_GET['dias'], FILTER_VALIDATE_INT);
 } elseif (array_key_exists('unidades', $_GET)) {
     $cantidad = filter_var($_GET['unidades'], FILTER_VALIDATE_INT);
 }
 
+// Comprobacion final de validez
 $entradaValida = !($cantidad === false || $cantidad === null || $cantidad <= 0);
 
 if(!$entradaValida) {
-    http_response_code(400);
+    http_response_code(400); //*
 }
 
-echo '<pre>';
+// Inspeccion tecnica
+echo '<pre>'; //*
 echo "Inspeccion tecnica de entrada: /n";
 var_dump([
     'GET' => $_GET,
@@ -36,15 +43,17 @@ var_dump([
 ]);
 echo '</pre>';
 
+// Salida temprana si la entrada es invalida
 if (!$entradaValida) {
     echo '<h1>Error 400: solicitud invalida</h1>';
     echo '<p>Debe enviar <code>? dias=...</code> o <code>?unidades=...</code> con un entero positivo.<p>';
     ob_end_flush
-    exit;
+    exit; //*
 }
 
+// Documentacion PHPDoc de la funcion
 /**
- * Calcula la factura de una reserva de alquiler.
+ * Calcula la factura de una reserva de alquiler. //*
  * 
  * @param array<int, array{cantidad:int|float, precio:float, concepto?:string}> $lineas Lineas de reserva.
  * @return array{
@@ -57,6 +66,7 @@ if (!$entradaValida) {
  * @throws InvalidArgumentException Si el listado esta vacio o alguna linea no tiene cantidad/precio validos.
  */
 function calcularFactura(array $lineas): array
+// Control de excepcion por listado vacio
 {
     if (count($lineas) === 0) {
         throw new InvalidArgumentException('El listado de vehiculos o reservas esta vacio');
@@ -65,6 +75,7 @@ function calcularFactura(array $lineas): array
     $total = 0.0;
     $detalle = [];
 
+    // Recorrido y validacion de cada linea
     foreach ($lineas as $indice => $linea) {
         if (!is_array($linea) || !array_key_exists('cantidad', $linea) || !array_key_exists('precio', $linea)) {
             throw new InvalidaArgumentException("La linea $indice no contiene cantidad y precio.");
@@ -84,6 +95,7 @@ function calcularFactura(array $lineas): array
             throw new InvalidArgumentException("La linea $indice debe tener cantidad positiva y precio no negativo.");
         }
 
+        // Calculo de subtotal y total
         $subtotal = $cantidadLinea * $precio;
         $total += $subtotal;
 
@@ -104,6 +116,7 @@ function calcularFactura(array $lineas): array
                 'Tarifa estándar'
                 : 'Suplemento por gestión'));
 
+    // Aplicacion del factor
     $factores = [
         'Descuento corporativo premium' => 0.85,
         'Descuento flota' => 0.92,
@@ -113,6 +126,7 @@ function calcularFactura(array $lineas): array
 
     $factor = $factores[$categoria] ?? 1.08;
 
+    // Devolucion del resultado
     return [
         'total' => round($total, 2),
         'categoria' => $categoria,
@@ -122,6 +136,7 @@ function calcularFactura(array $lineas): array
     ];
 }
 
+// Preparacion de las lineas de ejemplo
 $lineas = (isset($_GET['vacio']) && $_GET['vacio'] === '1')
     ? []
     : [
@@ -129,11 +144,17 @@ $lineas = (isset($_GET['vacio']) && $_GET['vacio'] === '1')
         ['concepto' => 'Cargador adicional', 'cantidad' => 1, 'precio' => 15.00],
     ];
 
+// Bloque try/catch
 try {
     $factura = calcularFactura($lineas);
 
     echo '<h2>Resultado de facturación</h2>';
-    echo '<pre>' . htmlspecialchars(print_r($factura, true), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+    echo '<pre>' . htmlspecialchars(print_r($factura, true), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</pre>';
+} catch (InvalidArgumentException $e) {
+    http_response_code(400);
+
+    echo '<h2>Excepcion controlada</h2>';
+    echo '<p>' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '<p>';
 }
 
 ob_end_flush();
